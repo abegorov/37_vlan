@@ -1,0 +1,24 @@
+---
+- name: Configure nftables
+  ansible.builtin.template:
+    src: '{{ nftables_template }}.conf'
+    dest: /etc/sysconfig/nftables.conf
+    owner: root
+    group: root
+    mode: '0600'
+  when: nftables_template | default(False)
+  notify: Reload nftables service
+
+- name: Enable and start nftables service
+  ansible.builtin.systemd_service:
+    name: nftables.service
+    enabled: true
+    state: started
+  when: nftables_template | default(False)
+
+- name: Disable and stop nftables service
+  ansible.builtin.systemd_service:
+    name: nftables.service
+    enabled: false
+    state: stopped
+  when: not (nftables_template | default(False))

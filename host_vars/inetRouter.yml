@@ -1,0 +1,27 @@
+---
+ip4: '192.168.255.1'
+
+nmcli_connections:
+  - conn_name: central-inet-bond
+    ifname: bond0
+    type: bond
+    mode: '802.3ad'
+    xmit_hash_policy: layer3+4
+    mtu: 1500
+    ip4: '192.168.255.1/30'
+    routes4: ['192.168.0.0/16 192.168.255.2']
+    custom: [[bond, lacp_rate, 1]]
+  - conn_name: central-inet
+    type: bond-slave
+    slave_type: bond
+    master: bond0
+    ifname: eth1
+    custom: [[ethernet, accept-all-mac-addresses, 1]]
+  - conn_name: central-inet2
+    type: bond-slave
+    slave_type: bond
+    master: bond0
+    ifname: eth2
+    custom: [[ethernet, accept-all-mac-addresses, 1]]
+
+nftables_template: '{{ inventory_hostname }}'

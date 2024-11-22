@@ -1,0 +1,19 @@
+---
+- name: Apply custom connection configuration for {{ conn.conn_name }}
+  community.general.ini_file:
+    path: /etc/NetworkManager/system-connections/{{
+      conn.conn_name }}.nmconnection
+    create: false
+    section: '{{ item[0] }}'
+    option: '{{ item[1] }}'
+    value: '{{ item[2] }}'
+    no_extra_spaces: true
+  loop: '{{ conn.custom }}'
+  ignore_errors: '{{ ansible_check_mode }}'
+  register: network_config_connection_custom
+
+- name: Update changed connections list
+  ansible.builtin.set_fact:
+    network_config_conn_changed: '{{ network_config_conn_changed +
+      [conn.conn_name] }}'
+  when: network_config_connection_custom.changed  # noqa: no-handler

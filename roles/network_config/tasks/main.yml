@@ -1,0 +1,80 @@
+---
+- name: Configure connection
+  community.general.nmcli:
+    conn_name: '{{ item.conn_name }}'
+    ifname: '{{ item.ifname }}'
+    ip4: '{{ item.ip4 | default(omit) }}'
+    gw4: '{{ item.gw4 | default(omit) }}'
+    routes4: '{{ item.routes4 | default(omit) }}'
+    routes4_extended: '{{ item.routes4_extended | default(omit) }}'
+    routing_rules4: '{{ item.routing_rules4 | default(omit) }}'
+    gw4_ignore_auto: '{{ item.gw4_ignore_auto | default(omit) }}'
+    type: '{{ item.type | default("ethernet") }}'
+    slave_type: '{{ item.slave_type | default(omit) }}'
+    mode: '{{ item.mode | default(omit) }}'
+    xmit_hash_policy: '{{ item.xmit_hash_policy | default(omit) }}'
+    master: '{{ item.master | default(omit) }}'
+    mtu: '{{ item.mtu | default(0) }}'
+    vlandev: '{{ item.vlandev | default(omit) }}'
+    vlanid: '{{ item.vlanid | default(omit) }}'
+    state: present
+  loop: '{{ nmcli_connections }}'
+  loop_control:
+    label: '{{ item.conn_name }}'
+  register: network_config_connection
+
+- name: Update changed connections list
+  ansible.builtin.set_fact:
+    network_config_conn_changed: '{{ network_config_connection.results |
+      selectattr("changed") | map(attribute="item") |
+      map(attribute="conn_name") }}'
+
+- name: Apply custom connection configuration
+  ansible.builtin.include_tasks: custom.yml
+  loop: '{{ nmcli_connections | selectattr("custom", "defined") |
+    selectattr("custom") }}'
+  loop_control:
+    label: '{{ conn.conn_name }}'
+    loop_var: conn
+
+- name: Reload network manager configuration
+  ansible.builtin.command: /usr/bin/nmcli connection reload
+  changed_when: true
+  when: network_config_conn_changed | default(False)
+
+- name: Restart bond interfaces
+  ansible.builtin.shell: |
+    /usr/bin/nmcli connection down '{{ item.conn_name }}'
+    /usr/bin/nmcli connection up '{{ item.conn_name }}'
+  changed_when: true
+  loop: '{{ nmcli_connections |
+    selectattr("conn_name", "in", network_config_conn_changed) |
+    selectattr("type", "defined") | selectattr("type", "==", "bond") }}'
+  loop_control:
+    label: '{{ item.conn_name }}'
+
+- name: Check the network connection state
+  ansible.builtin.command: /usr/bin/nmcli -g GENERAL.STATE
+    connection show '{{ item.conn_name }}'
+  changed_when: false
+  check_mode: false
+  register: network_config_connection_state
+  loop: '{{ nmcli_connections }}'
+  loop_control:
+    label: '{{ item.conn_name }}'
+
+- name: Bring the network connection up
+  ansible.builtin.command: /usr/bin/nmcli connection up '{{ item.conn_name }}'
+  changed_when: true
+  loop: '{{ network_config_connection_state.results |
+    selectattr("stdout", "!=", "activated") | map(attribute="item") }}'
+  loop_control:
+    label: '{{ item.conn_name }}'
+
+- name: Reapply network configuration
+  ansible.builtin.command: /usr/bin/nmcli device reapply '{{ item.ifname }}'
+  changed_when: true
+  loop: '{{ nmcli_connections |
+    selectattr("conn_name", "in", network_config_conn_changed) }}'
+  loop_control:
+    label: '{{ item.conn_name }}'

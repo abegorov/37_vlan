@@ -1,0 +1,17 @@
+---
+ip4: '192.168.2.98'
+
+nmcli_connections:
+  - conn_name: System eth0
+    ifname: eth0
+    gw4_ignore_auto: true
+  - conn_name: office1-test
+    ifname: eth1
+    ip4: '192.168.2.98/26'
+    gw4: '192.168.2.1'
+  - conn_name: vlan1
+    ifname: eth1.1
+    type: vlan
+    vlandev: eth1
+    vlanid: 1
+    ip4: '10.10.10.254/24'
