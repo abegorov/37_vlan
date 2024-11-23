@@ -45,7 +45,7 @@
 - [test2Client](host_vars/test2Client.yml);
 - [test2Server](host_vars/test2Server.yml).
 
-В качестве **bonding** настроен **802.3ad LACP** с режимом балансировки **layer3+4** и отправкой **LACPDU** каждую секунду (**LACP rate: fast** - `custom: [[bond, lacp_rate, 1]]` для **bond** интерфейсов). Тут важно отметить, что **VirtualBox** и драйвера сети в составе **RockyLinux** блокируют пакеты, если **MAC** отправителя не равен постоянному (**permaddr**) **MAC** сетевого интерфейса. Для решения этой проблемы были сделаны следующие настройки:
+В качестве **bonding** настроен **802.3ad LACP** с режимом балансировки **layer3+4** и отправкой **LACPDU** каждую секунду (**LACP rate: fast** - `custom: [[bond, lacp_rate, 1]]` для **bond** интерфейсов). Тут важно отметить, что **VirtualBox** и драйвера сети в составе **RockyLinux** блокируют пакеты, если **MAC** получателя не равен постоянному (**permaddr**) **MAC** сетевого интерфейса. Для решения этой проблемы были сделаны следующие настройки:
 
 - В [Vagrantfile](Vagrantfile) была добавлена строчка `:modifyvm => ['--nicpromisc2', 'allow-vms', '--nicpromisc3', 'allow-vms']`, которая разрешает такие пакеты со стороны **VirtualBox**.
 - В конфигурационных файлах для [inetRouter](host_vars/inetRouter.yml) и [centralRouter](host_vars/centralRouter.yml) была добавлена строчка `custom: [[ethernet, accept-all-mac-addresses, 1]]`, которая разрешает такие пакеты со стороны ядра **Linux**.
